@@ -2,24 +2,29 @@ package com.davecoss.android.todo;
 
 import java.util.List;
 
+import com.davecoss.android.lib.Notifier;
 import com.davecoss.android.todo.ListDB;
 import android.os.Bundle;
 import android.app.ListActivity;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class TODO extends ListActivity {
 	ListDB dbconn;
+	Notifier notifier;
+	String last_removed;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_todo);
+        notifier = new Notifier(this.getApplicationContext());
+        last_removed = null;
         dbconn = create_db();
         List<String> todolist = dbconn.getList();
         
@@ -43,18 +48,25 @@ public class TODO extends ListActivity {
     	return newdbconn;
     }
     
-    public void onClick(View view)
+    public void add_todo(String message)
     {
     	@SuppressWarnings("unchecked")
 		ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
+    	if(message.length() == 0)// ignore empty strings
+    		return;
+		this.dbconn.add_message(message);
+		adapter.add(message);
+		adapter.notifyDataSetChanged();
+    }
+    
+    public void onClick(View view)
+    {
     	switch (view.getId())
     	{
     	case R.id.add:
     		EditText new_todo = (EditText) findViewById(R.id.edit_box);
-        	String message = new_todo.getText().toString();
-    		this.dbconn.add_message(message);
-    		adapter.add(message);
-    		adapter.notifyDataSetChanged();
+        	String message = new_todo.getText().toString().trim();
+        	add_todo(message);
     		break;
     	default:
     		break;
@@ -65,14 +77,31 @@ public class TODO extends ListActivity {
     {
     	@SuppressWarnings("unchecked")
 		ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
-    	int duration = Toast.LENGTH_SHORT;
     	TextView tv = (TextView) view;
     	String message = tv.getText().toString();
 		this.dbconn.remove_message(message);
 		adapter.remove(message);
 		adapter.notifyDataSetChanged();
     	
-    	Toast toast = Toast.makeText(this.getApplicationContext(), "Removed: " + message, duration);
-        toast.show();
+		last_removed = message;
+    	notifier.toast_message("Removed: " + message);
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+        case R.id.undo:
+        	if(last_removed == null)
+        		break;
+        	add_todo(last_removed);
+        	notifier.toast_message("Restored: " + last_removed);
+        	last_removed = null;
+        	break;
+    	default:
+    		break;
+        }
+        
+        return true;
     }
 }

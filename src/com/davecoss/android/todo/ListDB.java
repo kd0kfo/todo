@@ -1,8 +1,18 @@
 package com.davecoss.android.todo;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.davecoss.android.lib.Notifier;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -10,6 +20,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Environment;
 import android.util.Log;
 
 public class ListDB extends SQLiteOpenHelper {
@@ -19,6 +30,7 @@ public class ListDB extends SQLiteOpenHelper {
 	private static final String LIST_TABLE_NAME = "todo";
 	public static final String NAME = "com.davecoss.android.todo.ListDB";
 	public enum States {UNFINISHED,FINISHED};
+	private Notifier notifier;
 	
 	private static final String CREATE_SQL =
             "CREATE TABLE " + LIST_TABLE_NAME + " ( id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -28,6 +40,7 @@ public class ListDB extends SQLiteOpenHelper {
 	public ListDB(Context context) 
 	{
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        notifier = new Notifier(context);
     }
 	
 	@Override
@@ -110,6 +123,81 @@ public class ListDB extends SQLiteOpenHelper {
 		Date now = new Date();  	
 		Long longTime = Long.valueOf(now.getTime()/1000);
 		return longTime.intValue();
+	}
+	
+	public void export(String filename)
+	{
+		boolean mExternalStorageAvailable = false;
+    	
+    	String state = Environment.getExternalStorageState();
+    	
+    	if (Environment.MEDIA_MOUNTED.equals(state)) {
+    	    // We can read and write the media
+    	    mExternalStorageAvailable = true;
+    	} else {
+    	    // Something else is wrong. It may be one of many other states, but all we need
+    	    //  to know is we can neither read nor write
+    	    mExternalStorageAvailable = false;
+    	}
+    	
+    	if(mExternalStorageAvailable)
+    	{
+    		File dir = Environment.getExternalStorageDirectory();
+    		if(!dir.exists())
+    		{
+    			notifier.toast_message("Could not make directory.");
+    			return;
+    		}
+    		File file = new File(dir, "todo_list.json");
+    		String json_string = "";
+    		try {
+    			StringBuilder builder = new StringBuilder();
+    			String line;
+    			BufferedReader buff = new BufferedReader(new FileReader(file));
+    			while((line = buff.readLine()) != null)
+    			{
+    				builder.append(line);
+    			}
+    			buff.close();
+    			json_string = builder.toString();
+    	    } catch (IOException e) {
+    	        notifier.toast_message("ExternalStorage: Error reading " + file.getName() + "\n" + e.getMessage());
+    	        return;
+    	    }
+    		JSONArray json_array;
+			try 
+			{
+				json_array = new JSONArray(json_string);
+			} 
+			catch (JSONException jsone) {
+				String msg = "Could not create JSON Array";
+				notifier.toast_message(msg);
+				Log.e("ListDB",msg + "\n" + jsone.getMessage());
+				return;
+			}
+    		json_string = null;
+    		
+    		int json_len = json_array.length();
+    		for(int i = 0;i<json_len;i++)
+    		{
+    			try
+    			{
+    				JSONObject todo_item = json_array.getJSONObject(i);
+    				this.add_message(todo_item.getString("message"));
+    			}
+    			catch(JSONException jsone)
+    			{
+    				String msg = "Could not get JSON Object/Message";
+    				notifier.toast_message(msg);
+    				Log.e("ListDB",msg + "\n" + jsone.getMessage());
+    				return;
+    			}
+    		}
+    	}
+    	else
+    	{
+    		notifier.toast_message("Cannot read file.");
+    	}
 	}
 
 }
