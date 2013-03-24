@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -13,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.davecoss.android.lib.Notifier;
+import com.davecoss.android.lib.SDIO;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -22,6 +25,7 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 
 public class ListDB extends SQLiteOpenHelper {
 
@@ -125,10 +129,54 @@ public class ListDB extends SQLiteOpenHelper {
 		return longTime.intValue();
 	}
 	
-	public void export(String filename)
+	public void export_json(String filename)
+	{
+		OutputStream os;
+		try 
+		{
+			os = SDIO.open_sdwriter(filename);
+		} catch (IOException e) {
+			notifier.log_exception("ListDB","Could not export list",e);
+			return;
+		}
+		
+		JSONArray json_array = new JSONArray();
+		List<String> todo_list = getList();
+		Iterator<String> it = todo_list.iterator();
+		int unixtime = unixtime();
+		while(it.hasNext())
+		{
+			String msg = it.next();
+			try {
+				JSONObject json_obj = new JSONObject();
+				json_obj.put("message", msg);
+				json_obj.put("create_date", unixtime);
+				json_array.put(json_obj);
+			} catch (JSONException e) {
+				notifier.log_exception("ListDB","Could create JSON Object",e);
+				return;
+			}
+		}
+		try
+		{
+			os.write(json_array.toString().getBytes());
+			os.close();
+		}
+		catch (IOException ioe)
+		{
+			notifier.log_exception("ListDB","Could not write JSON array to file.",ioe);
+		}
+	}
+	
+	public void import_json(String filename){import_json(filename,null);}
+	
+	public void import_json(String filename, ArrayAdapter<String> adapter)
 	{
 		boolean mExternalStorageAvailable = false;
     	
+		if(filename == null || filename.length() == 0)
+			return;
+		
     	String state = Environment.getExternalStorageState();
     	
     	if (Environment.MEDIA_MOUNTED.equals(state)) {
@@ -148,7 +196,7 @@ public class ListDB extends SQLiteOpenHelper {
     			notifier.toast_message("Could not make directory.");
     			return;
     		}
-    		File file = new File(dir, "todo_list.json");
+    		File file = new File(dir, filename);
     		String json_string = "";
     		try {
     			StringBuilder builder = new StringBuilder();
@@ -170,9 +218,7 @@ public class ListDB extends SQLiteOpenHelper {
 				json_array = new JSONArray(json_string);
 			} 
 			catch (JSONException jsone) {
-				String msg = "Could not create JSON Array";
-				notifier.toast_message(msg);
-				Log.e("ListDB",msg + "\n" + jsone.getMessage());
+				notifier.log_exception("ListDB","Could not create JSON Array",jsone);
 				return;
 			}
     		json_string = null;
@@ -182,14 +228,14 @@ public class ListDB extends SQLiteOpenHelper {
     		{
     			try
     			{
-    				JSONObject todo_item = json_array.getJSONObject(i);
-    				this.add_message(todo_item.getString("message"));
+    				String msg = json_array.getJSONObject(i).getString("message").toString();
+    				this.add_message(msg);
+    				if(adapter != null)
+    					adapter.add(msg);
     			}
     			catch(JSONException jsone)
     			{
-    				String msg = "Could not get JSON Object/Message";
-    				notifier.toast_message(msg);
-    				Log.e("ListDB",msg + "\n" + jsone.getMessage());
+    				notifier.log_exception("ListDB", "Could not get JSON Object/Message", jsone);
     				return;
     			}
     		}
@@ -199,5 +245,4 @@ public class ListDB extends SQLiteOpenHelper {
     		notifier.toast_message("Cannot read file.");
     	}
 	}
-
 }

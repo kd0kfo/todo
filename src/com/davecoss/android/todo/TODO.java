@@ -15,6 +15,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 public class TODO extends ListActivity {
+	public static final String IMPORT_FILENAME = "todo_list.json";
+	public static final String EXPORT_FILENAME = "todo_list_export.json";
 	ListDB dbconn;
 	Notifier notifier;
 	String last_removed;
@@ -56,7 +58,7 @@ public class TODO extends ListActivity {
     		return;
 		this.dbconn.add_message(message);
 		adapter.add(message);
-		adapter.notifyDataSetChanged();
+		touch_adapter(adapter);
     }
     
     public void onClick(View view)
@@ -73,15 +75,26 @@ public class TODO extends ListActivity {
     	}
     }
     
+    @SuppressWarnings("unchecked")
+	private void touch_adapter(ArrayAdapter<String> adapter)
+    {
+    	ArrayAdapter<String> _adapter = adapter;
+    	if(_adapter == null)
+    	{
+	    	_adapter = (ArrayAdapter<String>) getListAdapter();
+    	}
+    	_adapter.notifyDataSetChanged();
+    }
+    
     protected void onListItemClick (ListView l, View view, int position, long id)
     {
     	@SuppressWarnings("unchecked")
-		ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
+    	ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
     	TextView tv = (TextView) view;
     	String message = tv.getText().toString();
 		this.dbconn.remove_message(message);
 		adapter.remove(message);
-		adapter.notifyDataSetChanged();
+		touch_adapter(adapter);
     	
 		last_removed = message;
     	notifier.toast_message("Removed: " + message);
@@ -97,6 +110,17 @@ public class TODO extends ListActivity {
         	add_todo(last_removed);
         	notifier.toast_message("Restored: " + last_removed);
         	last_removed = null;
+        	break;
+        case R.id.menu_export:
+        	this.dbconn.export_json(EXPORT_FILENAME);
+        	notifier.toast_message("Exported TODO List as " + EXPORT_FILENAME);
+        	break;
+        case R.id.menu_import:
+        	@SuppressWarnings("unchecked")
+        	ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
+        	this.dbconn.import_json(IMPORT_FILENAME,adapter);
+        	touch_adapter(adapter);
+        	notifier.toast_message("Imported TODO list items");
         	break;
     	default:
     		break;

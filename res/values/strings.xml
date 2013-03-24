@@ -3,5 +3,7 @@
     <string name="app_name">TODO</string>
     <string name="title_activity_todo">TODO List</string>
     <string name="undo">Undo</string>
+    <string name="menu_export">Export</string>
+    <string name="menu_import">Import</string>
 
 </resources>
