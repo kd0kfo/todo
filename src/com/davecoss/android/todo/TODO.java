@@ -6,10 +6,12 @@ import com.davecoss.android.lib.Notifier;
 import com.davecoss.android.todo.ListDB;
 import android.os.Bundle;
 import android.app.ListActivity;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -36,6 +38,10 @@ public class TODO extends ListActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
             android.R.layout.simple_list_item_1 , todolist);
         setListAdapter(adapter);
+        
+        Button add_button = (Button) findViewById(R.id.add);
+        add_button.setFocusableInTouchMode(true);
+        add_button.requestFocus();
     }
 
     @Override
@@ -69,6 +75,7 @@ public class TODO extends ListActivity {
     		EditText new_todo = (EditText) findViewById(R.id.edit_box);
         	String message = new_todo.getText().toString().trim();
         	add_todo(message);
+        	new_todo.setText("");
     		break;
     	default:
     		break;
@@ -122,8 +129,20 @@ public class TODO extends ListActivity {
         	touch_adapter(adapter);
         	notifier.toast_message("Imported TODO list items");
         	break;
+        case R.id.menu_version:
+        	String app_ver;
+			try {
+				app_ver = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+				app_ver = "Version " + app_ver;
+	        } catch (NameNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				app_ver = "Error getting version";
+			}
+			notifier.toast_message(app_ver);
+        	return true;
     	default:
-    		break;
+    		return super.onOptionsItemSelected(item);
         }
         
         return true;
