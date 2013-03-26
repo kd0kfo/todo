@@ -3,6 +3,14 @@ import json
 from sys import argv
 from getopt import getopt
 
+def get_box():
+    from Tkinter import Tk,Listbox
+    dialog = Tk()
+    dialog.title("TODO")
+    todolist = Listbox(dialog)
+    
+    return (dialog,todolist)
+
 (opts, args) = getopt(argv[1:], "",["cli"])
 
 if len(args) != 1:
@@ -26,10 +34,8 @@ if use_cli:
         print("{0}: {1}".format(counter,item["message"]))
         counter += 1
 else:
-    from Tkinter import *
-    dialog = Tk()
-    dialog.title("TODO")
-    todolist = Listbox(dialog)
+    from Tkinter import END
+    (dialog,todolist) = get_box()
     todolist.pack()
 
     for item in todo:
