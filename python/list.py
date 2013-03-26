@@ -3,14 +3,39 @@ import json
 from sys import argv
 from getopt import getopt
 
-def get_box():
-    from Tkinter import Tk,Listbox
-    dialog = Tk()
-    dialog.title("TODO")
-    todolist = Listbox(dialog,width=50)
-    todolist.pack(side="left",fill="both",expand=True)
+class TKParent():
+    def __init__(self,filename):
+        self.dialog = None
+        self.todolist = None
+        self.filename = filename
+        
+    def refresh_list(self):
+        from Tkinter import END
+        if not self.todolist:
+            return
+        todo = json.loads(open(self.filename,"r").read())
+        self.todolist.delete(0,END)
+        for item in todo:
+            self.todolist.insert(END,item["message"])
 
-    return (dialog,todolist)
+    def get_box(self):
+        if not self.dialog:
+            from Tkinter import Tk,Listbox,Button
+            self.dialog = Tk()
+            self.dialog.title("TODO")
+            self.todolist = Listbox(self.dialog,width=50)
+            self.todolist.pack(side="left",fill="both",expand=True)
+            
+            btn = Button(self.dialog,text="Refresh",command=self.refresh_list)
+            btn.pack()
+            
+            self.refresh_list()
+        
+        return (self.dialog,self.todolist)
+
+    def add(self,msg):
+        from Tkinter import END
+        self.todolist.insert(END,msg)
 
 (opts, args) = getopt(argv[1:], "",["cli"])
 
@@ -27,17 +52,15 @@ for (opt,optarg) in opts:
     if opt == "cli":
         use_cli = True
 
-todo = json.loads(open(fn,"r").read())
-
 if use_cli:
+    todo = json.loads(open(fn,"r").read())
     counter = 1
     for item in todo:
         print("{0}: {1}".format(counter,item["message"]))
         counter += 1
 else:
     from Tkinter import END
-    (dialog,todolist) = get_box()
+    parent = TKParent(fn)
+    (dialog,todolist) = parent.get_box()
 
-    for item in todo:
-        todolist.insert(END,item["message"])
     dialog.mainloop()
