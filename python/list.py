@@ -7,8 +7,9 @@ def get_box():
     from Tkinter import Tk,Listbox
     dialog = Tk()
     dialog.title("TODO")
-    todolist = Listbox(dialog)
-    
+    todolist = Listbox(dialog,width=50)
+    todolist.pack(side="left",fill="both",expand=True)
+
     return (dialog,todolist)
 
 (opts, args) = getopt(argv[1:], "",["cli"])
@@ -36,7 +37,6 @@ if use_cli:
 else:
     from Tkinter import END
     (dialog,todolist) = get_box()
-    todolist.pack()
 
     for item in todo:
         todolist.insert(END,item["message"])
