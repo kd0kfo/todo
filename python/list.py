@@ -20,13 +20,16 @@ class TKParent():
 
     def get_box(self):
         if not self.dialog:
-            from Tkinter import Tk,Listbox,Button,Scrollbar,X,BOTTOM,HORIZONTAL
+            from Tkinter import Tk,Listbox,Button,Scrollbar,X,Y,BOTTOM,RIGHT,HORIZONTAL,VERTICAL
             self.dialog = Tk()
             self.dialog.title("TODO")
             scrollbar = Scrollbar(self.dialog,orient=HORIZONTAL)
-            self.todolist = Listbox(self.dialog,width=50,xscrollcommand=scrollbar.set)
+            yscrollbar = Scrollbar(self.dialog,orient=VERTICAL)
+            self.todolist = Listbox(self.dialog,width=50,xscrollcommand=scrollbar.set,yscrollcommand=yscrollbar.set)
             scrollbar.config(command=self.todolist.xview)
             scrollbar.pack(side=BOTTOM,fill=X)
+            yscrollbar.config(command=self.todolist.yview)
+            yscrollbar.pack(side=RIGHT,fill=Y)
             self.todolist.pack(side="left",fill="both",expand=True)
             
             btn = Button(self.dialog,text="Refresh",command=self.refresh_list)
