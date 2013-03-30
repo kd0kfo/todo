@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,6 +15,8 @@ import org.json.JSONObject;
 
 import com.davecoss.android.lib.Notifier;
 import com.davecoss.android.lib.SDIO;
+import com.davecoss.android.lib.utils;
+import com.davecoss.android.todo.TodoObject.States;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -33,12 +34,11 @@ public class ListDB extends SQLiteOpenHelper {
 	private static final String DATABASE_NAME = "todolistdb";
 	private static final String LIST_TABLE_NAME = "todo";
 	public static final String NAME = "com.davecoss.android.todo.ListDB";
-	public enum States {UNFINISHED,FINISHED};
 	private Notifier notifier;
 	
 	private static final String CREATE_SQL =
             "CREATE TABLE " + LIST_TABLE_NAME + " ( id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-            " message TEXT, create_time INTEGER,due_date INTEGER,orderidx REAL,state INTEGER);";
+            " message TEXT, create_time INTEGER,due_date INTEGER,orderidx REAL,state INTEGER, category TEXT);";
 	private String[] default_messages = {"Create TODO App","Test TODO App","Enjoy TODO App"};
 	
 	public ListDB(Context context) 
@@ -53,15 +53,15 @@ public class ListDB extends SQLiteOpenHelper {
 		try
 		{
 			db.execSQL(CREATE_SQL);
-			int currdate = unixtime();
+			int currdate = utils.unixtime();
 			int duedate = currdate + 60;
 			int len = default_messages.length;
 			String state_str = Integer.toString(States.UNFINISHED.ordinal());
 			for(int i = 0;i<len;i++)
 			{
-				db.execSQL("insert into " + LIST_TABLE_NAME + "(message, create_time, due_date, orderidx, state) values ('" 
+				db.execSQL("insert into " + LIST_TABLE_NAME + "(message, create_time, due_date, orderidx, state, category) values ('" 
 						+ default_messages[i] + "', " + Integer.toString(currdate) + ", " + Integer.toString(duedate)
-						+ ", " + Integer.toString(i) + ", " + state_str + ");");
+						+ ", " + Integer.toString(i) + ", " + state_str + ", '');");
 			}
 		}
 		catch(SQLException sqle)
@@ -76,58 +76,67 @@ public class ListDB extends SQLiteOpenHelper {
 
 	}
 	
-	public List<String> getList()
+	public List<TodoObject> getList(String category)
 	{
-		List<String> retval = new ArrayList<String>();
-		String[] columns = {"message"};
-		Cursor rows = this.getReadableDatabase().query(LIST_TABLE_NAME, columns, null, null, null, null, "orderidx");
+		List<TodoObject> retval = new ArrayList<TodoObject>();
+		String[] columns = {"id","message","create_time","due_date","orderidx", "state","category"};
+		
+		String where_clause = null;
+		if(category != null && category.length() != 0)
+		{
+			// Need to scrub category with android db query selection variable???
+			where_clause = " category = " + category + " ";
+		}
+		
+		Cursor rows = this.getReadableDatabase().query(LIST_TABLE_NAME, columns, where_clause, null, null, null, "orderidx");
 		
 		while(rows.moveToNext())
 		{
-			retval.add(rows.getString(0));
+			TodoObject item = new TodoObject(rows.getString(1));
+			item.set_dbid(rows.getInt(0));
+			item.set_create_time(rows.getInt(2));
+			item.set_due_date(rows.getInt(3));
+			item.set_orderidx(rows.getDouble(4));
+			item.set_state(States.values()[rows.getInt(5)]);
+			if(!rows.isNull(6))
+				item.set_category(rows.getString(6));
+			retval.add(item);
 		}
 		
 		return retval;
 	}
 
-	public void add_message(String strMessage) {
+	public TodoObject add_message(String strMessage, String cat) throws SQLiteException
+	{
 		SQLiteDatabase db = this.getWritableDatabase();
 		String state = Integer.toString(States.UNFINISHED.ordinal());
-		int unixtime = unixtime();
+		int unixtime = utils.unixtime();
 		String currdate = Integer.toString(unixtime);
 		String duedate = Integer.toString(unixtime+60);
 		String sql = "";
-		try
-		{
-			sql = "insert into " + LIST_TABLE_NAME + "(message, create_time,due_date,orderidx,state) values ('" 
-					+ strMessage + "', " + currdate + ", " + duedate + ",0.0, " + state + ");";
-			db.execSQL(sql);
-		}
-		catch(SQLiteException sqle)
-		{
-			Log.e("ListDB","SQLITE ERROR\n" + sqle.getMessage() + sql);
-		}
+		TodoObject retval = new TodoObject(strMessage);
+		if(cat == null)
+			cat = "";
+		sql = "insert into " + LIST_TABLE_NAME + "(message, create_time,due_date,orderidx,state,category) values ('" 
+				+ strMessage + "', " + currdate + ", " + duedate + ",0.0, " + state + ", '" + cat + "');";
+		db.execSQL(sql);
+		retval.set_create_time(unixtime);
+		retval.set_due_date(unixtime+60);
+		retval.set_state(States.UNFINISHED);
+		retval.set_category(cat);
+		
+		return retval;
 	}
 
-	public void remove_message(String strMessage) {
+	public void remove_message(String strMessage, String category) throws SQLException
+	{
 		SQLiteDatabase db = this.getWritableDatabase();
-		try
-		{
-			db.execSQL("delete from " + LIST_TABLE_NAME + " where message = '" 
-					+ strMessage + "';");
-		}
-		catch(SQLiteException sqle)
-		{
-			Log.e("ListDB","SQL Error: " + sqle.getMessage());
-		}
+		if(category == null)
+			category = "";
+		db.delete(LIST_TABLE_NAME, "message = '" + strMessage + "' and category = '" + category + "'", null);
+		
 	}
 	
-	public static int unixtime()
-	{
-		Date now = new Date();  	
-		Long longTime = Long.valueOf(now.getTime()/1000);
-		return longTime.intValue();
-	}
 	
 	public void export_json(String filename)
 	{
@@ -141,16 +150,13 @@ public class ListDB extends SQLiteOpenHelper {
 		}
 		
 		JSONArray json_array = new JSONArray();
-		List<String> todo_list = getList();
-		Iterator<String> it = todo_list.iterator();
-		int unixtime = unixtime();
+		List<TodoObject> todo_list = getList(null);
+		Iterator<TodoObject> it = todo_list.iterator();
 		while(it.hasNext())
 		{
-			String msg = it.next();
+			TodoObject item = it.next();
 			try {
-				JSONObject json_obj = new JSONObject();
-				json_obj.put("message", msg);
-				json_obj.put("create_date", unixtime);
+				JSONObject json_obj = item.toJSON();
 				json_array.put(json_obj);
 			} catch (JSONException e) {
 				notifier.log_exception("ListDB","Could create JSON Object",e);
@@ -168,9 +174,7 @@ public class ListDB extends SQLiteOpenHelper {
 		}
 	}
 	
-	public void import_json(String filename){import_json(filename,null);}
-	
-	public void import_json(String filename, ArrayAdapter<String> adapter)
+	public void import_json(String filename)
 	{
 		boolean mExternalStorageAvailable = false;
     	
@@ -228,10 +232,12 @@ public class ListDB extends SQLiteOpenHelper {
     		{
     			try
     			{
-    				String msg = json_array.getJSONObject(i).getString("message").toString();
-    				this.add_message(msg);
-    				if(adapter != null)
-    					adapter.add(msg);
+    				JSONObject json_obj = json_array.getJSONObject(i);
+    				String msg = json_obj.getString("message");
+    				String category = null;
+    				if(json_obj.has("category"))
+    					category = json_obj.getString("category");
+    				this.add_message(msg,category);
     			}
     			catch(JSONException jsone)
     			{

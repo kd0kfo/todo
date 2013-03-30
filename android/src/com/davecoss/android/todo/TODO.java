@@ -3,10 +3,13 @@ package com.davecoss.android.todo;
 import java.util.List;
 
 import com.davecoss.android.lib.Notifier;
+import com.davecoss.android.lib.utils;
 import com.davecoss.android.todo.ListDB;
 import android.os.Bundle;
 import android.app.ListActivity;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.database.SQLException;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,6 +25,7 @@ public class TODO extends ListActivity {
 	ListDB dbconn;
 	Notifier notifier;
 	String last_removed;
+	String curr_category;
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -29,15 +33,12 @@ public class TODO extends ListActivity {
         setContentView(R.layout.activity_todo);
         notifier = new Notifier(this.getApplicationContext());
         last_removed = null;
+        curr_category = null;
         dbconn = create_db();
-        List<String> todolist = dbconn.getList();
         
-
         // Use the SimpleCursorAdapter to show the
         // elements in a ListView
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-            android.R.layout.simple_list_item_1 , todolist);
-        setListAdapter(adapter);
+        rebuild_adapter();
         
         Button add_button = (Button) findViewById(R.id.add);
         add_button.setFocusableInTouchMode(true);
@@ -50,6 +51,16 @@ public class TODO extends ListActivity {
         return true;
     }
     
+    private ArrayAdapter<TodoObject> rebuild_adapter()
+    {
+    	List<TodoObject> todolist = dbconn.getList(curr_category);
+        
+    	ArrayAdapter<TodoObject> adapter = new ArrayAdapter<TodoObject>(this,
+            android.R.layout.simple_list_item_1 , todolist);
+        setListAdapter(adapter);
+        return adapter;
+    }
+    
     public ListDB create_db()
     {
     	ListDB newdbconn = new ListDB(this.getApplicationContext());
@@ -59,12 +70,27 @@ public class TODO extends ListActivity {
     public void add_todo(String message)
     {
     	@SuppressWarnings("unchecked")
-		ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
+		ArrayAdapter<TodoObject> adapter = (ArrayAdapter<TodoObject>) getListAdapter();
     	if(message.length() == 0)// ignore empty strings
     		return;
-		this.dbconn.add_message(message);
-		adapter.add(message);
-		touch_adapter(adapter);
+		String category = null;
+		if(message.contains(":"))
+		{
+			int loc = message.indexOf(":");
+			category = message.substring(0, loc);
+			message = message.substring(loc+1);
+		}
+    	try
+    	{
+    		TodoObject new_item = this.dbconn.add_message(message, category);
+    		adapter.add(new_item);
+    		touch_adapter(adapter);
+    	}
+    	catch(SQLException sqle)
+    	{
+    		Log.e("TODO","Could not add message.\n" + sqle.getMessage());
+    	}
+		
     }
     
     public void onClick(View view)
@@ -83,28 +109,44 @@ public class TODO extends ListActivity {
     }
     
     @SuppressWarnings("unchecked")
-	private void touch_adapter(ArrayAdapter<String> adapter)
+	private void touch_adapter(ArrayAdapter<TodoObject> adapter)
     {
-    	ArrayAdapter<String> _adapter = adapter;
+    	ArrayAdapter<TodoObject> _adapter = adapter;
     	if(_adapter == null)
     	{
-	    	_adapter = (ArrayAdapter<String>) getListAdapter();
+	    	_adapter = (ArrayAdapter<TodoObject>) getListAdapter();
     	}
     	_adapter.notifyDataSetChanged();
     }
     
     protected void onListItemClick (ListView l, View view, int position, long id)
     {
-    	@SuppressWarnings("unchecked")
-    	ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
     	TextView tv = (TextView) view;
     	String message = tv.getText().toString();
-		this.dbconn.remove_message(message);
-		adapter.remove(message);
-		touch_adapter(adapter);
-    	
-		last_removed = message;
-    	notifier.toast_message("Removed: " + message);
+		
+    	try
+    	{
+    		if(curr_category != null && curr_category.length() != 0)
+    			this.dbconn.remove_message(message, curr_category);
+    		else if(message.contains(":"))
+    		{
+    			int loc = message.indexOf(":");
+    			String msg = message.substring(loc+1);
+    			String cat = message.substring(0,loc);
+    			this.dbconn.remove_message(msg,cat);
+    		}
+    		else
+    			this.dbconn.remove_message(message,null);
+    		rebuild_adapter();
+    		last_removed = message;
+    		notifier.toast_message("Removed: " + message);
+    	}
+    	catch(SQLException sqle)
+    	{
+    		notifier.log_exception("TODO", "Failed to remove: " + message, sqle);
+    		
+    	}
+		
     }
     
     @Override
@@ -123,17 +165,14 @@ public class TODO extends ListActivity {
         	notifier.toast_message("Exported TODO List as " + EXPORT_FILENAME);
         	break;
         case R.id.menu_import:
-        	@SuppressWarnings("unchecked")
-        	ArrayAdapter<String> adapter = (ArrayAdapter<String>) getListAdapter();
-        	this.dbconn.import_json(IMPORT_FILENAME,adapter);
-        	touch_adapter(adapter);
+        	this.dbconn.import_json(IMPORT_FILENAME);
+        	rebuild_adapter();
         	notifier.toast_message("Imported TODO list items");
         	break;
         case R.id.menu_version:
         	String app_ver;
 			try {
-				app_ver = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
-				app_ver = "Version " + app_ver;
+				app_ver = utils.get_app_version(this);
 	        } catch (NameNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
