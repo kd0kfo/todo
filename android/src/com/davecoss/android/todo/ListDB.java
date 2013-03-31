@@ -26,7 +26,6 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 
 public class ListDB extends SQLiteOpenHelper {
 
