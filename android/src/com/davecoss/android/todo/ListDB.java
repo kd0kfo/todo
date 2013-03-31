@@ -142,7 +142,7 @@ public class ListDB extends SQLiteOpenHelper {
 		OutputStream os;
 		try 
 		{
-			os = SDIO.open_sdwriter(filename);
+			os = SDIO.open_sdwriter(filename,false);
 		} catch (IOException e) {
 			notifier.log_exception("ListDB","Could not export list",e);
 			return;
