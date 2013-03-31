@@ -17,6 +17,13 @@ public class TodoObject {
 	{
 		message = msg;
 		
+		if(message.contains(":"))
+		{
+			int loc = message.indexOf(":");
+			category = message.substring(0,loc);
+			message = message.substring(loc+1);
+		}
+		
 		create_time = utils.unixtime();
 		due_date = create_time + 60;
 		orderidx = 0;
@@ -86,7 +93,19 @@ public class TodoObject {
 	
 	public String get_category()
 	{
+		if(category == null)
+			return "";
 		return category;
+	}
+	
+	public String get_message()
+	{
+		return message;
+	}
+	
+	public void set_message(String msg)
+	{
+		message = msg;
 	}
 	
 	public String toString()

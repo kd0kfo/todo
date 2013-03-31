@@ -7,6 +7,7 @@ import com.davecoss.android.lib.utils;
 import com.davecoss.android.todo.ListDB;
 import android.os.Bundle;
 import android.app.ListActivity;
+import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.SQLException;
 import android.util.Log;
@@ -22,6 +23,8 @@ import android.widget.TextView;
 public class TODO extends ListActivity {
 	public static final String IMPORT_FILENAME = "todo_list.json";
 	public static final String EXPORT_FILENAME = "todo_list_export.json";
+	public static final int SHOW_ITEM_EDITOR = 42;
+	public static final int RESULT_OK = 0;
 	ListDB dbconn;
 	Notifier notifier;
 	String last_removed;
@@ -123,7 +126,36 @@ public class TODO extends ListActivity {
     {
     	TextView tv = (TextView) view;
     	String message = tv.getText().toString();
-		
+    	
+    	Intent item_editor_activity = new Intent(getBaseContext(), ListItemEditor.class);
+    	item_editor_activity.putExtra(ListItemEditor.TODO_MESSAGE, message);
+    	startActivityForResult(item_editor_activity,SHOW_ITEM_EDITOR);
+    }
+    
+    @Override 
+    public void onActivityResult(int requestCode, int resultCode, Intent data) 
+    {     
+      super.onActivityResult(requestCode, resultCode, data); 
+      switch(requestCode) 
+      {
+      case SHOW_ITEM_EDITOR:
+    	  if (resultCode == RESULT_OK) 
+    	  {
+    		  if(data == null || !data.hasExtra(ListItemEditor.STR_ID))
+    			  break;
+    		  int action = data.getIntExtra(ListItemEditor.STR_ID,ListItemEditor.ACTION_IGNORE);
+    		  if(action == ListItemEditor.ACTION_DELETE)
+    		  {
+    			  String message = data.getStringExtra(ListItemEditor.TODO_MESSAGE);
+    			  remove_item(message);
+    		  }
+	      }
+    	  break;
+      }
+    }
+    
+    private void remove_item(String message)
+    {
     	try
     	{
     		if(curr_category != null && curr_category.length() != 0)

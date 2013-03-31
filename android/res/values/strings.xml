@@ -6,5 +6,11 @@
     <string name="menu_export">Export</string>
     <string name="menu_import">Import</string>
     <string name="menu_version">Version</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_list_item_editor">ListItemEditor</string>
+    <string name="lbl_todo">Todo:</string>
+    <string name="btn_delete">Delete</string>
+    <string name="lbl_category">Category:</string>
 
 </resources>
