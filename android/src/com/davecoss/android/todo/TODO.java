@@ -77,8 +77,8 @@ public class TODO extends ListActivity {
 		if(message.contains(":"))
 		{
 			int loc = message.indexOf(":");
-			category = message.substring(0, loc);
-			message = message.substring(loc+1);
+			category = message.substring(0, loc).trim();
+			message = message.substring(loc+1).trim();
 		}
     	try
     	{
