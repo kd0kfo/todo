@@ -16,7 +16,10 @@ class TKParent():
         todo = json.loads(open(self.filename,"r").read())
         self.todolist.delete(0,END)
         for item in todo:
-            self.todolist.insert(END,item["message"])
+            text = item["message"]
+            if "category" in item and item["category"]:
+                text  = "{0}: {1}".format(item["category"], text)
+            self.todolist.insert(END,text)
 
     def get_box(self):
         if not self.dialog:
