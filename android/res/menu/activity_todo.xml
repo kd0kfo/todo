@@ -2,7 +2,7 @@
     <item android:id="@+id/undo"
         android:title="@string/undo"
         android:orderInCategory="100" />
-    <item android:id="@+id/menu_export" android:title="@string/menu_export"></item>
-    <item android:id="@+id/menu_import" android:title="@string/menu_import"></item>
-    <item android:id="@+id/menu_version" android:title="@string/menu_version"></item>
+    <item android:id="@+id/menu_export" android:title="@string/menu_export" showAsAction="ifRoom"></item>
+    <item android:id="@+id/menu_import" android:title="@string/menu_import" showAsAction="ifRoom"></item>
+    <item android:id="@+id/menu_version" android:title="@string/menu_version" showAsAction="ifRoom"></item>
 </menu>
