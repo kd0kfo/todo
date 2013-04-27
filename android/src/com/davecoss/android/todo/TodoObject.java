@@ -16,6 +16,7 @@ public class TodoObject {
 	public TodoObject(String msg)
 	{
 		message = msg;
+		dbid = -1;
 		
 		if(message.contains(":"))
 		{
@@ -28,6 +29,28 @@ public class TodoObject {
 		due_date = create_time + 60;
 		orderidx = 0;
 		state = States.UNFINISHED;
+	}
+	
+	public TodoObject(JSONObject json) throws JSONException
+	{
+		message = "JSON Error";
+		create_time = utils.unixtime();
+		due_date = create_time + 60;
+		orderidx = 0;
+		state = States.UNFINISHED;
+		
+		message = json.getString("message");
+		if(json.has("dbid"))
+			dbid = json.getInt("dbid");
+		if(json.has("create_time"))
+			create_time = json.getInt("create_time");
+		if(json.has("due_date"))
+			due_date = json.getInt("due_date");
+		if(json.has("orderidx"))
+			orderidx = json.getDouble("orderidx");
+		if(json.has("state"))
+			state = States.valueOf(json.getString("state"));
+		
 	}
 	
 	public void set_dbid(int id)

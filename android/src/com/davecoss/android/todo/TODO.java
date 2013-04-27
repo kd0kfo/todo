@@ -2,6 +2,8 @@ package com.davecoss.android.todo;
 
 import java.util.List;
 
+import org.json.JSONException;
+
 import com.davecoss.android.lib.Notifier;
 import com.davecoss.android.lib.utils;
 import com.davecoss.android.todo.ListDB;
@@ -124,12 +126,16 @@ public class TODO extends ListActivity {
     
     protected void onListItemClick (ListView l, View view, int position, long id)
     {
-    	TextView tv = (TextView) view;
-    	String message = tv.getText().toString();
+    	TodoObject todo = (TodoObject) this.getListAdapter().getItem(position);
     	
     	Intent item_editor_activity = new Intent(getBaseContext(), ListItemEditor.class);
-    	item_editor_activity.putExtra(ListItemEditor.TODO_MESSAGE, message);
-    	startActivityForResult(item_editor_activity,SHOW_ITEM_EDITOR);
+    	try {
+			item_editor_activity.putExtra(ListItemEditor.TODO_MESSAGE, todo.toJSON().toString());
+			startActivityForResult(item_editor_activity,SHOW_ITEM_EDITOR);
+		} catch (JSONException jsone) {
+			notifier.log_exception("TODO", "Could not get todo item", jsone);
+		}
+    	
     }
     
     @Override 

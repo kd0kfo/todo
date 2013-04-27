@@ -12,5 +12,6 @@
     <string name="lbl_todo">Todo:</string>
     <string name="btn_delete">Delete</string>
     <string name="lbl_category">Category:</string>
+    <string name="lbl_create_time">Created:</string>
 
 </resources>
