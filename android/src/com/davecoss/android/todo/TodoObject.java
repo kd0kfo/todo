@@ -34,12 +34,15 @@ public class TodoObject {
 	public TodoObject(JSONObject json) throws JSONException
 	{
 		message = "JSON Error";
+		category = "";
 		create_time = utils.unixtime();
 		due_date = create_time + 60;
 		orderidx = 0;
 		state = States.UNFINISHED;
 		
 		message = json.getString("message");
+		if(json.has("category"))
+			category = json.getString("category");
 		if(json.has("dbid"))
 			dbid = json.getInt("dbid");
 		if(json.has("create_time"))
