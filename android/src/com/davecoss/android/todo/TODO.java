@@ -93,7 +93,7 @@ public class TODO extends ListActivity {
     	}
     	catch(SQLException sqle)
     	{
-    		Log.e("TODO","Could not add message.\n" + sqle.getMessage());
+    		notifier.log_exception("TODO","Could not add message.", sqle);
     	}
 		
     }
