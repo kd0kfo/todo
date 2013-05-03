@@ -18,6 +18,7 @@ import com.davecoss.android.lib.SDIO;
 import com.davecoss.android.lib.utils;
 import com.davecoss.android.todo.TodoObject.States;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
@@ -112,18 +113,17 @@ public class ListDB extends SQLiteOpenHelper {
 		int unixtime = utils.unixtime();
 		String currdate = Integer.toString(unixtime);
 		String duedate = Integer.toString(unixtime+60);
-		String sql = "";
 		TodoObject retval = new TodoObject(strMessage);
 		if(cat == null)
 			cat = "";
-		sql = "insert into " + LIST_TABLE_NAME + "(message, create_time,due_date,orderidx,state,category) values ('" 
-				+ strMessage + "', " + currdate + ", " + duedate + ",0.0, " + state + ", '" + cat + "');";
-		db.execSQL(sql);
 		retval.set_create_time(unixtime);
 		retval.set_due_date(unixtime+60);
 		retval.set_state(States.UNFINISHED);
 		retval.set_category(cat);
 		
+		ContentValues values = retval.toContentValues();
+		long row_id = db.insert(LIST_TABLE_NAME, null, values);
+		retval.set_dbid((int)row_id);
 		return retval;
 	}
 
@@ -132,8 +132,9 @@ public class ListDB extends SQLiteOpenHelper {
 		SQLiteDatabase db = this.getWritableDatabase();
 		if(category == null)
 			category = "";
-		db.delete(LIST_TABLE_NAME, "message = '" + strMessage + "' and category = '" + category + "'", null);
-		
+		String[] whereArgs = new String[]{strMessage, category};
+		db.delete(LIST_TABLE_NAME, "message = ? and category = ?",whereArgs);
+
 	}
 	
 	

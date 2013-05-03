@@ -3,6 +3,8 @@ package com.davecoss.android.todo;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.ContentValues;
+
 import com.davecoss.android.lib.utils;
 
 public class TodoObject {
@@ -146,6 +148,18 @@ public class TodoObject {
 		JSONObject retval = new JSONObject();
 		retval.put("message", message);
 		retval.put("dbid", dbid);
+		retval.put("create_time", create_time);
+		retval.put("due_date", due_date);
+		retval.put("orderidx", orderidx);
+		retval.put("state", state.toString());
+		retval.put("category", category);
+		return retval;
+	}
+	
+	public ContentValues toContentValues()
+	{
+		ContentValues retval = new ContentValues();
+		retval.put("message", message);
 		retval.put("create_time", create_time);
 		retval.put("due_date", due_date);
 		retval.put("orderidx", orderidx);
