@@ -8,22 +8,43 @@ class TKParent():
         self.dialog = None
         self.todolist = None
         self.filename = filename
+        self.categories = []
+        self.cat_list = None
         
-    def refresh_list(self):
+    def do_refresh(self,category=None):
         from Tkinter import END
         if not self.todolist:
             return
         todo = json.loads(open(self.filename,"r").read())
         self.todolist.delete(0,END)
         for item in todo:
+            curr_category = None
             text = item["message"]
             if "category" in item and item["category"]:
-                text  = "{0}: {1}".format(item["category"], text)
+                curr_category = item["category"]
+                text  = "{0}: {1}".format(curr_category, text)
+                if not curr_category in self.categories:
+                    self.categories.append(curr_category)
+            if category:
+                if category == "NONE":
+                    if curr_category and curr_category != "NONE":
+                        continue
+                elif category != curr_category:
+                    continue
             self.todolist.insert(END,text)
 
+    def refresh_list(self):
+        self.do_refresh()
+
+    def filter_list(self,arg):
+        if arg == "ALL":
+            self.refresh_list()
+        else:
+            self.do_refresh(arg)
+        
     def get_box(self):
         if not self.dialog:
-            from Tkinter import Tk,Listbox,Button,Scrollbar,X,Y,BOTTOM,RIGHT,HORIZONTAL,VERTICAL
+            from Tkinter import Tk,Listbox,Button,Scrollbar,X,Y,BOTTOM,RIGHT,HORIZONTAL,VERTICAL,OptionMenu,StringVar
             self.dialog = Tk()
             self.dialog.title("TODO")
             scrollbar = Scrollbar(self.dialog,orient=HORIZONTAL)
@@ -35,10 +56,17 @@ class TKParent():
             yscrollbar.pack(side=RIGHT,fill=Y)
             self.todolist.pack(side="left",fill="both",expand=True)
             
+            cat_list_name = StringVar()
+            cat_list_name.set("Category")
+            
+
             btn = Button(self.dialog,text="Refresh",command=self.refresh_list)
             btn.pack()
             
             self.refresh_list()
+            if self.categories:
+                self.cat_list = OptionMenu(self.dialog,cat_list_name,*(self.categories+["ALL","NONE"]),command=self.filter_list)
+                self.cat_list.pack()
         
         return (self.dialog,self.todolist)
 
