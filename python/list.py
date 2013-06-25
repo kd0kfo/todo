@@ -15,6 +15,7 @@ class TKParent():
         from Tkinter import END
         if not self.todolist:
             return
+        self.categories = []
         todo = json.loads(open(self.filename,"r").read())
         self.todolist.delete(0,END)
         for item in todo:
