@@ -32,6 +32,7 @@ class TKParent():
                 elif category != curr_category:
                     continue
             self.todolist.insert(END,text)
+        self.dialog.title("TODO ({0})".format(self.todolist.size()))
 
     def refresh_list(self):
         self.do_refresh()
